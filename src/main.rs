@@ -1,13 +1,19 @@
-use std::borrow::Cow;
 use utils::timer::Timer;
 
 mod common;
 mod day01_historian_hysteria;
+mod day02_red_nosed_reports;
 
 fn main() {
+    let mut context = common::Context::default();
+    //context.set_testing(0);
+
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-        //std::env::set_var("RUST_LOG", "debug");
+        if context.is_testing() {
+            std::env::set_var("RUST_LOG", "debug");
+        } else {
+            std::env::set_var("RUST_LOG", "info");
+        }
     }
     env_logger::init();
     let _timer = Timer::start(|elapsed| println!("main took {} ms", elapsed.as_millis()));
@@ -20,19 +26,20 @@ fn main() {
         days.len()
     };
 
-    let input = || {
+    context.set_text_input(Box::new(move || {
         std::fs::read_to_string(format!("input/{:02}.txt", day))
             .expect(&format!("Failed to read input file input/{:02}.txt", day))
             .into()
-    };
+    }));
     let run = days[day - 1];
 
     println!("Running day {}\n", day);
-    run(&input);
+    run(&mut context);
 }
 
-fn days() -> &'static [fn(&dyn Fn() -> Cow<'static, str>)] {
+fn days() -> &'static [fn(&mut common::Context)] {
     &[
-        day01_historian_hysteria::run,
+        day01_historian_hysteria::run, 
+        day02_red_nosed_reports::run,
     ]
 }

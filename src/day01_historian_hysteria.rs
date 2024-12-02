@@ -1,11 +1,10 @@
-﻿use crate::common;
-use std::borrow::Cow;
+﻿use crate::common::{Context, InputProvider};
 use std::collections::HashMap;
 
-pub fn run(input: &dyn Fn() -> Cow<'static, str>) {
-    //let input = _test_inputs(0);
+pub fn run(context: &mut Context) {
+    context.add_test_inputs(get_test_inputs());
 
-    let (mut left, mut right) = parse(&input());
+    let (mut left, mut right) = parse(context.get_input().as_str());
     left.sort();
     right.sort();
     let distance = get_distance(&left, &right);
@@ -17,7 +16,6 @@ pub fn run(input: &dyn Fn() -> Cow<'static, str>) {
 }
 
 fn parse(input: &str) -> (Vec<i32>, Vec<i32>) {
-    let input = common::clean_input(input);
     let i = input.lines().count();
     let mut left: Vec<i32> = Vec::with_capacity(i);
     let mut right: Vec<i32> = Vec::with_capacity(i);
@@ -59,13 +57,13 @@ fn get_similarity_score(left: &[i32], right: &[i32]) -> i32 {
         .sum()
 }
 
-fn _test_inputs(i: usize) -> impl Fn() -> &'static str {
-    move || {
-        &["3   4
+fn get_test_inputs() -> impl Iterator<Item = Box<InputProvider>> {
+    ["3   4
     4   3
     2   5
     1   3
     3   9
-    3   3"][i]
-    }
+    3   3"]
+    .into_iter()
+    .map(|input| Box::new(move || input.into()) as Box<InputProvider>)
 }
