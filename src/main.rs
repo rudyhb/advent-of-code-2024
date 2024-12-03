@@ -3,6 +3,7 @@ use utils::timer::Timer;
 mod common;
 mod day01_historian_hysteria;
 mod day02_red_nosed_reports;
+mod day03_mull_it_over;
 
 fn main() {
     let mut context = common::Context::default();
@@ -10,7 +11,7 @@ fn main() {
 
     if std::env::var("RUST_LOG").is_err() {
         if context.is_testing() {
-            std::env::set_var("RUST_LOG", "debug");
+            std::env::set_var("RUST_LOG", "trace");
         } else {
             std::env::set_var("RUST_LOG", "info");
         }
@@ -41,5 +42,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
     &[
         day01_historian_hysteria::run, 
         day02_red_nosed_reports::run,
+        day03_mull_it_over::run,
     ]
 }
