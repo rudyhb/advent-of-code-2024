@@ -4,6 +4,7 @@ mod common;
 mod day01_historian_hysteria;
 mod day02_red_nosed_reports;
 mod day03_mull_it_over;
+mod day04_ceres_search;
 
 fn main() {
     let mut context = common::Context::default();
@@ -43,5 +44,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day01_historian_hysteria::run, 
         day02_red_nosed_reports::run,
         day03_mull_it_over::run,
+        day04_ceres_search::run,
     ]
 }
