@@ -5,10 +5,17 @@ mod day01_historian_hysteria;
 mod day02_red_nosed_reports;
 mod day03_mull_it_over;
 mod day04_ceres_search;
+mod day05_print_queue;
 
 fn main() {
     let mut context = common::Context::default();
     //context.set_testing(0);
+
+    if let Ok(testing) = std::env::var("APP_TESTING") {
+        if let Ok(testing) = testing.parse() {
+            context.set_testing(testing);
+        }
+    }
 
     if std::env::var("RUST_LOG").is_err() {
         if context.is_testing() {
@@ -41,9 +48,10 @@ fn main() {
 
 fn days() -> &'static [fn(&mut common::Context)] {
     &[
-        day01_historian_hysteria::run, 
+        day01_historian_hysteria::run,
         day02_red_nosed_reports::run,
         day03_mull_it_over::run,
         day04_ceres_search::run,
+        day05_print_queue::run,
     ]
 }
