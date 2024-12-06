@@ -1,7 +1,42 @@
-﻿#[derive(Default, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
+﻿#[derive(Clone, Default, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
 pub struct Point {
     pub x: usize,
     pub y: usize,
+}
+
+impl Point {
+    pub fn move_to(&self, direction: Direction) -> Option<Self> {
+        match direction {
+            Direction::Up => {
+                if self.y > 0 {
+                    Some(Self {
+                        x: self.x,
+                        y: self.y - 1,
+                    })
+                } else {
+                    None
+                }
+            }
+            Direction::Down => Some(Self {
+                x: self.x,
+                y: self.y + 1,
+            }),
+            Direction::Left => {
+                if self.x > 0 {
+                    Some(Self {
+                        x: self.x - 1,
+                        y: self.y,
+                    })
+                } else {
+                    None
+                }
+            }
+            Direction::Right => Some(Self {
+                x: self.x + 1,
+                y: self.y,
+            }),
+        }
+    }
 }
 
 pub struct Grid<T> {
@@ -42,16 +77,28 @@ impl<T> Grid<T> {
     pub fn four_way_neighbors(&self, point: &Point) -> Vec<Point> {
         let mut neighbors = Vec::new();
         if point.x > 0 {
-            neighbors.push(Point { x: point.x - 1, y: point.y });
+            neighbors.push(Point {
+                x: point.x - 1,
+                y: point.y,
+            });
         }
         if point.x < self.size_x - 1 {
-            neighbors.push(Point { x: point.x + 1, y: point.y });
+            neighbors.push(Point {
+                x: point.x + 1,
+                y: point.y,
+            });
         }
         if point.y > 0 {
-            neighbors.push(Point { x: point.x, y: point.y - 1 });
+            neighbors.push(Point {
+                x: point.x,
+                y: point.y - 1,
+            });
         }
         if point.y < self.size_y - 1 {
-            neighbors.push(Point { x: point.x, y: point.y + 1 });
+            neighbors.push(Point {
+                x: point.x,
+                y: point.y + 1,
+            });
         }
         neighbors
     }
@@ -144,5 +191,24 @@ impl<'a, T> Iterator for GridIterator<'a, T> {
         Self: Sized,
     {
         self.grid.len_x() * self.grid.len_y()
+    }
+}
+
+#[derive(Copy, Clone, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Direction {
+    pub fn turn_right(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Right => Direction::Down,
+        }
     }
 }

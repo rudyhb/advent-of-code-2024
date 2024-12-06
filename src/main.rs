@@ -6,6 +6,7 @@ mod day02_red_nosed_reports;
 mod day03_mull_it_over;
 mod day04_ceres_search;
 mod day05_print_queue;
+mod day06_guard_gallivant;
 
 fn main() {
     let mut context = common::Context::default();
@@ -53,5 +54,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day03_mull_it_over::run,
         day04_ceres_search::run,
         day05_print_queue::run,
+        day06_guard_gallivant::run,
     ]
 }
