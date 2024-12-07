@@ -7,6 +7,7 @@ mod day03_mull_it_over;
 mod day04_ceres_search;
 mod day05_print_queue;
 mod day06_guard_gallivant;
+mod day07_bridge_repair;
 
 fn main() {
     let mut context = common::Context::default();
@@ -55,5 +56,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day04_ceres_search::run,
         day05_print_queue::run,
         day06_guard_gallivant::run,
+        day07_bridge_repair::run,
     ]
 }
