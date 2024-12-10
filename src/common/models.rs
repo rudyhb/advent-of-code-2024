@@ -1,10 +1,16 @@
-﻿#[derive(Clone, Default, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
-pub struct Point {
-    pub x: usize,
-    pub y: usize,
+﻿use std::ops::Mul;
+use std::ops::{Add, Sub};
+
+pub trait Numeric: Add<Output = Self> + Sub<Output = Self> + Default + Copy + PartialOrd {}
+impl<T> Numeric for T where T: Add<Output = T> + Sub<Output = T> + Default + Copy + PartialOrd {}
+
+#[derive(Clone, Default, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
+pub struct Point<T: Numeric> {
+    pub x: T,
+    pub y: T,
 }
 
-impl Point {
+impl Point<usize> {
     pub fn move_to(&self, direction: Direction) -> Option<Self> {
         match direction {
             Direction::Up => {
@@ -62,7 +68,7 @@ impl<T> Grid<T> {
     pub fn iter(&self) -> GridIterator<T> {
         GridIterator::new(self)
     }
-    pub fn eight_way_neighbors(&self, point: &Point) -> Vec<Point> {
+    pub fn eight_way_neighbors(&self, point: &Point<usize>) -> Vec<Point<usize>> {
         let mut neighbors = Vec::new();
         for x in point.x.saturating_sub(1)..(point.x + 2).min(self.size_x) {
             for y in point.y.saturating_sub(1)..(point.y + 2).min(self.size_y) {
@@ -74,7 +80,7 @@ impl<T> Grid<T> {
         neighbors
     }
     #[allow(dead_code)]
-    pub fn four_way_neighbors(&self, point: &Point) -> Vec<Point> {
+    pub fn four_way_neighbors(&self, point: &Point<usize>) -> Vec<Point<usize>> {
         let mut neighbors = Vec::new();
         if point.x > 0 {
             neighbors.push(Point {
@@ -129,7 +135,7 @@ impl<T> Grid<T> {
     pub fn len_y(&self) -> usize {
         self.size_y
     }
-    pub fn get(&self, point: &Point) -> Option<&T> {
+    pub fn get(&self, point: &Point<usize>) -> Option<&T> {
         if point.x < self.size_x && point.y < self.size_y {
             Some(&self.map[point.y][point.x])
         } else {
@@ -137,7 +143,7 @@ impl<T> Grid<T> {
         }
     }
     #[allow(dead_code)]
-    pub fn get_mut(&mut self, point: &Point) -> Option<&mut T> {
+    pub fn get_mut(&mut self, point: &Point<usize>) -> Option<&mut T> {
         if point.x < self.size_x && point.y < self.size_y {
             Some(&mut self.map[point.y][point.x])
         } else {
@@ -170,7 +176,7 @@ impl<'a, T> GridIterator<'a, T> {
 }
 
 impl<'a, T> Iterator for GridIterator<'a, T> {
-    type Item = (Point, &'a T);
+    type Item = (Point<usize>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         let point = Point {
@@ -209,6 +215,77 @@ impl Direction {
             Direction::Down => Direction::Left,
             Direction::Left => Direction::Up,
             Direction::Right => Direction::Down,
+        }
+    }
+}
+
+impl<T: Numeric> Add for &Point<T> {
+    type Output = Point<T>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Point {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Point<usize> {
+    pub fn try_sub(&self, rhs: Self) -> Option<Self> {
+        if rhs.x > self.x || rhs.y > self.y {
+            None
+        } else {
+            Some(Point {
+                x: self.x - rhs.x,
+                y: self.y - rhs.y,
+            })
+        }
+    }
+}
+impl<T: Numeric> Sub for &Point<T> {
+    type Output = Point<T>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Point {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub trait MultiplyByI32 {
+    type Output;
+    fn multiply_by_i32(self, rhs: i32) -> Self::Output;
+}
+
+impl<T> MultiplyByI32 for &Point<T>
+where
+    T: Numeric + Mul<i32, Output = T>,
+{
+    type Output = Point<T>;
+    fn multiply_by_i32(self, rhs: i32) -> Self::Output {
+        Point {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+
+pub trait MultiplyByI64 {
+    type Output;
+    fn multiply_by_i64(self, rhs: i64) -> Self::Output;
+}
+
+impl<T> MultiplyByI64 for &Point<T>
+where
+    T: Numeric + Mul<i64, Output = T>,
+{
+    type Output = Point<T>;
+    fn multiply_by_i64(self, rhs: i64) -> Self::Output {
+        Point {
+            x: self.x * rhs,
+            y: self.y * rhs,
         }
     }
 }

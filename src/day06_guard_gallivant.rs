@@ -51,18 +51,18 @@ struct Map {
     size_x: usize,
     size_y: usize,
     guard: GuardPosition,
-    obstacles: HashSet<Point>,
-    visited: HashSet<Point>,
+    obstacles: HashSet<Point<usize>>,
+    visited: HashSet<Point<usize>>,
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
 struct GuardPosition {
-    position: Point,
+    position: Point<usize>,
     direction: Direction,
 }
 
 impl GuardPosition {
-    pub fn new(position: Point, direction: Direction) -> Self {
+    pub fn new(position: Point<usize>, direction: Direction) -> Self {
         Self {
             position,
             direction,
@@ -102,7 +102,7 @@ impl Display for Map {
 }
 
 impl Map {
-    pub fn change_direction_and_get_next(&mut self) -> anyhow::Result<Option<Point>> {
+    pub fn change_direction_and_get_next(&mut self) -> anyhow::Result<Option<Point<usize>>> {
         let mut i = 0;
         let next = loop {
             if i >= 4 {
@@ -130,7 +130,7 @@ impl Map {
 
         Ok(Some(next))
     }
-    fn walk_to(&mut self, next: Point) {
+    fn walk_to(&mut self, next: Point<usize>) {
         self.visited.insert(next.clone());
         self.guard.position = next;
     }

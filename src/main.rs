@@ -8,6 +8,7 @@ mod day04_ceres_search;
 mod day05_print_queue;
 mod day06_guard_gallivant;
 mod day07_bridge_repair;
+mod day08_resonant_collinearity;
 
 fn main() {
     let mut context = common::Context::default();
@@ -57,5 +58,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day05_print_queue::run,
         day06_guard_gallivant::run,
         day07_bridge_repair::run,
+        day08_resonant_collinearity::run,
     ]
 }
