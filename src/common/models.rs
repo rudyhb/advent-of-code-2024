@@ -1,4 +1,5 @@
-﻿use std::ops::Mul;
+﻿use std::fmt::{Display, Formatter};
+use std::ops::Mul;
 use std::ops::{Add, Sub};
 
 pub trait Numeric: Add<Output = Self> + Sub<Output = Self> + Default + Copy + PartialOrd {}
@@ -79,7 +80,6 @@ impl<T> Grid<T> {
         }
         neighbors
     }
-    #[allow(dead_code)]
     pub fn four_way_neighbors(&self, point: &Point<usize>) -> Vec<Point<usize>> {
         let mut neighbors = Vec::new();
         if point.x > 0 {
@@ -128,6 +128,27 @@ impl<T> Grid<T> {
             size_x,
             size_y,
         }
+    }
+    pub fn try_from_iter<I, E>(iter: I) -> Result<Self, E>
+    where
+        I: Iterator,
+        I::Item: IntoIterator<Item = Result<T, E>>,
+    {
+        let map: Box<[Box<[T]>]> = iter
+            .into_iter()
+            .map(|row| row.into_iter().collect::<Result<_, E>>())
+            .collect::<Result<_, E>>()?;
+        let size_y = map.len();
+        let size_x = map.first().map_or(0, |row| row.len());
+        assert!(
+            map.iter().all(|row| row.len() == size_x),
+            "All rows must be the same length"
+        );
+        Ok(Self {
+            map,
+            size_x,
+            size_y,
+        })
     }
     pub fn len_x(&self) -> usize {
         self.size_x
@@ -250,6 +271,12 @@ impl<T: Numeric> Sub for &Point<T> {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
+    }
+}
+
+impl<T: Numeric + Display> Display for Point<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
     }
 }
 
