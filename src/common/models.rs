@@ -46,6 +46,7 @@ impl Point<usize> {
     }
 }
 
+#[derive(Clone)]
 pub struct Grid<T> {
     map: Box<[Box<[T]>]>,
     size_x: usize,
@@ -107,6 +108,17 @@ impl<T> Grid<T> {
             });
         }
         neighbors
+    }
+    pub fn try_move_if(
+        &self,
+        point: &Point<usize>,
+        direction: Direction,
+        condition: impl FnOnce(&T) -> bool,
+    ) -> Option<Point<usize>> {
+        point.move_to(direction).and_then(|point| {
+            self.get(&point)
+                .and_then(|value| if condition(value) { Some(point) } else { None })
+        })
     }
     pub fn from_iter<I>(iter: I) -> Self
     where
@@ -236,6 +248,14 @@ impl Direction {
             Direction::Down => Direction::Left,
             Direction::Left => Direction::Up,
             Direction::Right => Direction::Down,
+        }
+    }
+    pub fn turn_left(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Left,
+            Direction::Down => Direction::Right,
+            Direction::Left => Direction::Down,
+            Direction::Right => Direction::Up,
         }
     }
 }
