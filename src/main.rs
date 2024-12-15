@@ -1,3 +1,5 @@
+#![feature(linked_list_cursors)]
+
 use utils::timer::Timer;
 
 mod common;
@@ -11,6 +13,7 @@ mod day07_bridge_repair;
 mod day08_resonant_collinearity;
 mod day09_disk_fragmenter;
 mod day10_hoof_it;
+mod day11_plutonian_pebbles;
 
 fn main() {
     let mut context = common::Context::default();
@@ -63,5 +66,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day08_resonant_collinearity::run,
         day09_disk_fragmenter::run,
         day10_hoof_it::run,
+        day11_plutonian_pebbles::run,
     ]
 }
