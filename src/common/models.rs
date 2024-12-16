@@ -1,9 +1,13 @@
-﻿use std::fmt::{Display, Formatter};
-use std::ops::Mul;
+﻿use std::fmt::{Debug, Display, Formatter};
+use std::iter::Sum;
 use std::ops::{Add, Sub};
+use std::ops::{Div, Mul, Neg};
 
-pub trait Numeric: Add<Output = Self> + Sub<Output = Self> + Default + Copy + PartialOrd {}
-impl<T> Numeric for T where T: Add<Output = T> + Sub<Output = T> + Default + Copy + PartialOrd {}
+pub trait Numeric: Add<Output = Self> + Sum + Mul<Output = Self> + Div<Output = Self> + Invertible + Sub<Output = Self> + Default + Copy + PartialOrd + Debug + Default {}
+impl<T> Numeric for T where T: Add<Output = T> + Sum + Sub<Output = T> + Mul<Output = Self> + Div<Output = Self> + Invertible + Default + Copy + PartialOrd + Debug + Default {}
+
+pub trait NumericNeg: Numeric + Neg<Output = Self> {}
+impl<T> NumericNeg for T where T: Numeric + Neg<Output = Self> {}
 
 #[derive(Clone, Default, Hash, PartialEq, Eq, Ord, PartialOrd, Debug)]
 pub struct Point<T: Numeric> {
@@ -334,5 +338,39 @@ where
             x: self.x * rhs,
             y: self.y * rhs,
         }
+    }
+}
+
+pub trait Invertible {
+    fn invert(self) -> Self;
+}
+
+impl Invertible for i32 {
+    fn invert(self) -> Self {
+        1 / self
+    }
+}
+
+impl Invertible for i64 {
+    fn invert(self) -> Self {
+        1 / self
+    }
+}
+
+impl Invertible for usize {
+    fn invert(self) -> Self {
+        1 / self
+    }
+}
+
+impl Invertible for f32 {
+    fn invert(self) -> Self {
+        1.0 / self
+    }
+}
+
+impl Invertible for f64 {
+    fn invert(self) -> Self {
+        1.0 / self
     }
 }

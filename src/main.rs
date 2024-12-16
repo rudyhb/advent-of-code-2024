@@ -15,6 +15,7 @@ mod day09_disk_fragmenter;
 mod day10_hoof_it;
 mod day11_plutonian_pebbles;
 mod day12_garden_groups;
+mod day13_claw_contraption;
 
 fn main() {
     let mut context = common::Context::default();
@@ -69,5 +70,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day10_hoof_it::run,
         day11_plutonian_pebbles::run,
         day12_garden_groups::run,
+        day13_claw_contraption::run,
     ]
 }

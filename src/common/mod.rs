@@ -1,5 +1,6 @@
 ﻿use std::borrow::Cow;
 pub mod models;
+pub mod linear_algebra;
 
 pub type InputProvider = dyn Fn() -> TextInput;
 #[derive(Default)]
