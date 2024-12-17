@@ -155,7 +155,7 @@ fn solve2v2(input: &str) -> usize {
             let mut current = edge.position.clone();
             let direction = direction_func(&edge.direction);
             'inner: loop {
-                if let Some(p) = plot.0.try_move_if(&current, direction, |&v| v == value) {
+                if let Some(p) = plot.0.try_move_if(&current, direction, |_,&v| v == value) {
                     if !edges.remove(&Edge {
                         position: p.clone(),
                         direction: edge.direction,
@@ -190,7 +190,7 @@ fn solve2v2(input: &str) -> usize {
                 for &direction in &DIRECTIONS {
                     if let Some(p) = plot
                         .0
-                        .try_move_if(&current_point, direction, |&v| v == value)
+                        .try_move_if(&current_point, direction, |_,&v| v == value)
                     {
                         next_points.push(p);
                     } else {

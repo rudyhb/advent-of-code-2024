@@ -17,16 +17,17 @@ mod day11_plutonian_pebbles;
 mod day12_garden_groups;
 mod day13_claw_contraption;
 mod day14_restroom_redoubt;
+mod day15_warehouse_woes;
 
 fn main() {
     let mut context = common::Context::default();
-    //context.set_testing(0);
 
     if let Ok(testing) = std::env::var("APP_TESTING") {
         if let Ok(testing) = testing.parse() {
             context.set_testing(testing);
         }
     }
+    //context.set_testing(0);
 
     if std::env::var("RUST_LOG").is_err() {
         if context.is_testing() {
@@ -73,5 +74,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day12_garden_groups::run,
         day13_claw_contraption::run,
         day14_restroom_redoubt::run,
+        day15_warehouse_woes::run,
     ]
 }

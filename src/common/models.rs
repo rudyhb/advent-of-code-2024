@@ -117,11 +117,11 @@ impl<T> Grid<T> {
         &self,
         point: &Point<usize>,
         direction: Direction,
-        condition: impl FnOnce(&T) -> bool,
+        condition: impl FnOnce(&Point<usize>, &T) -> bool,
     ) -> Option<Point<usize>> {
         point.move_to(direction).and_then(|point| {
             self.get(&point)
-                .and_then(|value| if condition(value) { Some(point) } else { None })
+                .and_then(|value| if condition(&point, value) { Some(point) } else { None })
         })
     }
     pub fn from_iter<I>(iter: I) -> Self
@@ -186,6 +186,9 @@ impl<T> Grid<T> {
         } else {
             None
         }
+    }
+    pub fn set(&mut self, point: &Point<usize>, value: T) {
+        self.map[point.y][point.x] = value;
     }
 }
 
@@ -372,5 +375,19 @@ impl Invertible for f32 {
 impl Invertible for f64 {
     fn invert(self) -> Self {
         1.0 / self
+    }
+}
+
+impl TryFrom<char> for Direction {
+    type Error = ();
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'U' | '^' => Ok(Direction::Up),
+            'D' | 'v' => Ok(Direction::Down),
+            'L' | '<' => Ok(Direction::Left),
+            'R' | '>' => Ok(Direction::Right),
+            _ => Err(()),
+        }
     }
 }
