@@ -18,6 +18,7 @@ mod day12_garden_groups;
 mod day13_claw_contraption;
 mod day14_restroom_redoubt;
 mod day15_warehouse_woes;
+mod day16_reindeer_maze;
 
 fn main() {
     let mut context = common::Context::default();
@@ -49,7 +50,7 @@ fn main() {
 
     context.set_text_input(Box::new(move || {
         std::fs::read_to_string(format!("input/{:02}.txt", day))
-            .expect(&format!("Failed to read input file input/{:02}.txt", day))
+            .unwrap_or_else(|_| panic!("Failed to read input file input/{:02}.txt", day))
             .into()
     }));
     let run = days[day - 1];
@@ -75,5 +76,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day13_claw_contraption::run,
         day14_restroom_redoubt::run,
         day15_warehouse_woes::run,
+        day16_reindeer_maze::run,
     ]
 }

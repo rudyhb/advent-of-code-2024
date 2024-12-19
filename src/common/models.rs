@@ -3,8 +3,34 @@ use std::iter::Sum;
 use std::ops::{Add, Sub};
 use std::ops::{Div, Mul, Neg};
 
-pub trait Numeric: Add<Output = Self> + Sum + Mul<Output = Self> + Div<Output = Self> + Invertible + Sub<Output = Self> + Default + Copy + PartialOrd + Debug + Default {}
-impl<T> Numeric for T where T: Add<Output = T> + Sum + Sub<Output = T> + Mul<Output = Self> + Div<Output = Self> + Invertible + Default + Copy + PartialOrd + Debug + Default {}
+pub trait Numeric:
+    Add<Output = Self>
+    + Sum
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + Invertible
+    + Sub<Output = Self>
+    + Default
+    + Copy
+    + PartialOrd
+    + Debug
+    + Default
+{
+}
+impl<T> Numeric for T where
+    T: Add<Output = T>
+        + Sum
+        + Sub<Output = T>
+        + Mul<Output = Self>
+        + Div<Output = Self>
+        + Invertible
+        + Default
+        + Copy
+        + PartialOrd
+        + Debug
+        + Default
+{
+}
 
 pub trait NumericNeg: Numeric + Neg<Output = Self> {}
 impl<T> NumericNeg for T where T: Numeric + Neg<Output = Self> {}
@@ -16,6 +42,19 @@ pub struct Point<T: Numeric> {
 }
 
 impl Point<usize> {
+    pub fn manhattan_distance(&self, other: &Self) -> usize {
+        let x = if self.x > other.x {
+            self.x - other.x
+        } else {
+            other.x - self.x
+        };
+        let y = if self.y > other.y {
+            self.y - other.y
+        } else {
+            other.y - self.y
+        };
+        x + y
+    }
     pub fn move_to(&self, direction: Direction) -> Option<Self> {
         match direction {
             Direction::Up => {
@@ -50,7 +89,7 @@ impl Point<usize> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Grid<T> {
     map: Box<[Box<[T]>]>,
     size_x: usize,
@@ -120,8 +159,13 @@ impl<T> Grid<T> {
         condition: impl FnOnce(&Point<usize>, &T) -> bool,
     ) -> Option<Point<usize>> {
         point.move_to(direction).and_then(|point| {
-            self.get(&point)
-                .and_then(|value| if condition(&point, value) { Some(point) } else { None })
+            self.get(&point).and_then(|value| {
+                if condition(&point, value) {
+                    Some(point)
+                } else {
+                    None
+                }
+            })
         })
     }
     pub fn from_iter<I>(iter: I) -> Self
@@ -388,6 +432,25 @@ impl TryFrom<char> for Direction {
             'L' | '<' => Ok(Direction::Left),
             'R' | '>' => Ok(Direction::Right),
             _ => Err(()),
+        }
+    }
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Direction::Up => {
+                write!(f, "^")
+            }
+            Direction::Down => {
+                write!(f, "v")
+            }
+            Direction::Left => {
+                write!(f, "<")
+            }
+            Direction::Right => {
+                write!(f, ">")
+            }
         }
     }
 }
