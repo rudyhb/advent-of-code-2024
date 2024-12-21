@@ -1,7 +1,9 @@
-﻿use std::fmt::{Debug, Display, Formatter};
+﻿use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, Sub};
 use std::ops::{Div, Mul, Neg};
+use utils::a_star::Node;
 
 pub trait Numeric:
     Add<Output = Self>
@@ -39,6 +41,12 @@ impl<T> NumericNeg for T where T: Numeric + Neg<Output = Self> {}
 pub struct Point<T: Numeric> {
     pub x: T,
     pub y: T,
+}
+
+impl<T: Numeric> Point<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Self {x, y}
+    }
 }
 
 impl Point<usize> {
@@ -85,6 +93,16 @@ impl Point<usize> {
                 x: self.x + 1,
                 y: self.y,
             }),
+        }
+    }
+    pub fn try_sub(&self, rhs: Self) -> Option<Self> {
+        if rhs.x > self.x || rhs.y > self.y {
+            None
+        } else {
+            Some(Point {
+                x: self.x - rhs.x,
+                y: self.y - rhs.y,
+            })
         }
     }
 }
@@ -322,18 +340,6 @@ impl<T: Numeric> Add for &Point<T> {
     }
 }
 
-impl Point<usize> {
-    pub fn try_sub(&self, rhs: Self) -> Option<Self> {
-        if rhs.x > self.x || rhs.y > self.y {
-            None
-        } else {
-            Some(Point {
-                x: self.x - rhs.x,
-                y: self.y - rhs.y,
-            })
-        }
-    }
-}
 impl<T: Numeric> Sub for &Point<T> {
     type Output = Point<T>;
 
@@ -454,3 +460,53 @@ impl Display for Direction {
         }
     }
 }
+
+impl<T: Display> Display for Grid<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            GridDisplay {
+                grid: self,
+                overrides: HashMap::<&Point<usize>, &char>::default()
+            }
+        )
+    }
+}
+
+impl<T: Display> Grid<T> {
+    pub fn display_with_overrides<'a, V: Display>(
+        &'a self,
+        overrides: HashMap<&'a Point<usize>, &'a V>,
+    ) -> GridDisplay<'a, T, V> {
+        GridDisplay {
+            grid: self,
+            overrides,
+        }
+    }
+}
+
+pub struct GridDisplay<'a, T, V> {
+    grid: &'a Grid<T>,
+    overrides: HashMap<&'a Point<usize>, &'a V>,
+}
+
+impl<T: Display, V: Display> Display for GridDisplay<'_, T, V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for y in 0..self.grid.len_y() {
+            writeln!(f)?;
+            for x in 0..self.grid.len_x() {
+                let point = Point { x, y };
+                if let Some(o) = self.overrides.get(&point) {
+                    write!(f, "{}", o)?;
+                } else {
+                    let value = self.grid.get(&point).unwrap();
+                    write!(f, "{}", value)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Node for Point<usize> { }
