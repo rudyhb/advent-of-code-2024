@@ -21,6 +21,7 @@ mod day15_warehouse_woes;
 mod day16_reindeer_maze;
 mod day17_chronospatial_computer;
 mod day18_ram_run;
+mod day19_linen_layout;
 
 fn main() {
     let mut context = common::Context::default();
@@ -81,5 +82,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day16_reindeer_maze::run,
         day17_chronospatial_computer::run,
         day18_ram_run::run,
+        day19_linen_layout::run,
     ]
 }
