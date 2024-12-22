@@ -1,4 +1,5 @@
-﻿use std::collections::HashMap;
+﻿use anyhow::Context;
+use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, Sub};
@@ -45,7 +46,7 @@ pub struct Point<T: Numeric> {
 
 impl<T: Numeric> Point<T> {
     pub fn new(x: T, y: T) -> Self {
-        Self {x, y}
+        Self { x, y }
     }
 }
 
@@ -254,6 +255,28 @@ impl<T> Grid<T> {
     }
 }
 
+impl<T: Default> Grid<T> {
+    pub fn from_str_with<F: FnMut(char, &Point<usize>) -> anyhow::Result<Option<T>>>(
+        s: &str,
+        mut parse_item: F,
+    ) -> Result<Self, anyhow::Error> {
+        let size_y = s.lines().count();
+        let size_x = s.lines().next().context("empty game map")?.chars().count();
+        let mut grid = Self::new(size_x, size_y);
+
+        for (y, line) in s.lines().enumerate() {
+            for (x, c) in line.chars().enumerate() {
+                let point = Point { x, y };
+                if let Some(item) = parse_item(c, &point)? {
+                    grid.set(&point, item);
+                }
+            }
+        }
+
+        Ok(grid)
+    }
+}
+
 pub struct GridIterator<'a, T> {
     grid: &'a Grid<T>,
     x: usize,
@@ -311,6 +334,9 @@ pub enum Direction {
 }
 
 impl Direction {
+    pub fn directions() -> [Direction; 4] {
+        [Direction::Up, Direction::Down, Direction::Left, Direction::Right]
+    }
     pub fn turn_right(&self) -> Self {
         match self {
             Direction::Up => Direction::Right,
@@ -509,4 +535,4 @@ impl<T: Display, V: Display> Display for GridDisplay<'_, T, V> {
     }
 }
 
-impl Node for Point<usize> { }
+impl Node for Point<usize> {}
