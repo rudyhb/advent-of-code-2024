@@ -24,6 +24,7 @@ mod day18_ram_run;
 mod day19_linen_layout;
 mod day20_race_condition;
 mod day21_keypad_conundrum;
+mod day22_monkey_market;
 
 fn main() {
     let mut context = common::Context::default();
@@ -87,5 +88,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day19_linen_layout::run,
         day20_race_condition::run,
         day21_keypad_conundrum::run,
+        day22_monkey_market::run,
     ]
 }
