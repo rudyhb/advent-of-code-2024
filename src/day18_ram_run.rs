@@ -86,7 +86,6 @@ fn solve(
         shortest_path_cost,
     } = a_star_search(
         start,
-        &end,
         |node| {
             memory_space
                 .grid
@@ -96,8 +95,8 @@ fn solve(
                 .map(|next| Successor::new(next, 1))
                 .collect()
         },
-        |details| details.current_node.manhattan_distance(details.target_node),
-        |left, right| left == right,
+        |details| details.current_node.manhattan_distance(&end),
+        |left| left == &end,
         options,
     )?;
     Ok((shortest_path, shortest_path_cost))

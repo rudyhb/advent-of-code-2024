@@ -23,6 +23,7 @@ mod day17_chronospatial_computer;
 mod day18_ram_run;
 mod day19_linen_layout;
 mod day20_race_condition;
+mod day21_keypad_conundrum;
 
 fn main() {
     let mut context = common::Context::default();
@@ -85,5 +86,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day18_ram_run::run,
         day19_linen_layout::run,
         day20_race_condition::run,
+        day21_keypad_conundrum::run,
     ]
 }

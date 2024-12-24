@@ -55,19 +55,18 @@ fn solve(input: &str) {
         successors
     };
 
-    fn distance_function(node_details: CurrentNodeDetails<Position, usize>) -> usize {
+    fn distance_function(node_details: CurrentNodeDetails<Position, usize>, end: &Position) -> usize {
         node_details
             .current_node
             .position
-            .manhattan_distance(&node_details.target_node.position)
+            .manhattan_distance(&end.position)
     }
 
     let result = a_star::a_star_search(
         start.clone(),
-        &end,
         get_successors,
-        distance_function,
-        |left, right| left.position == right.position,
+        |current| distance_function(current, &end),
+        |left| left.position == end.position,
         Some(&options),
     )
     .unwrap();
@@ -116,21 +115,20 @@ fn solve(input: &str) {
         successors
     };
 
-    fn distance_function_2(node_details: CurrentNodeDetails<PositionWithHistory, usize>) -> usize {
+    fn distance_function_2(node_details: CurrentNodeDetails<PositionWithHistory, usize>, end: &PositionWithHistory) -> usize {
         node_details
             .current_node
             .position
             .position
-            .manhattan_distance(&node_details.target_node.position.position)
+            .manhattan_distance(&end.position.position)
     }
 
     let all_results = a_star::a_star_search_all_with_max_score(
         shortest_path_cost,
         start,
-        &end,
         get_successors,
-        distance_function_2,
-        |left, right| left.position.position == right.position.position,
+        |current| distance_function_2(current, &end),
+        |left| left.position.position == end.position.position,
         Some(&options),
     )
     .unwrap();

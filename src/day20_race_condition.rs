@@ -115,7 +115,6 @@ impl Racetrack {
         let end = &self.end;
         a_star_search(
             start,
-            end,
             |node| {
                 Direction::directions()
                     .into_iter()
@@ -127,8 +126,8 @@ impl Racetrack {
                     .map(|new_point| Successor::new(new_point, 1))
                     .collect()
             },
-            |details| details.current_node.manhattan_distance(details.target_node),
-            |left, right| left == right,
+            |details| details.current_node.manhattan_distance(&end),
+            |left| left == end,
             None,
         )
     }
@@ -221,7 +220,6 @@ impl Racetrack {
         }
         let result = a_star_search(
             from,
-            to,
             |node| {
                 Direction::directions()
                     .into_iter()
@@ -235,9 +233,9 @@ impl Racetrack {
             |details| {
                 details
                     .current_node
-                    .manhattan_distance(details.target_node)
+                    .manhattan_distance(&to)
             },
-            |left, right| left == right,
+            |left| left == to,
             Some(&Options::default().with_no_logs()),
         )?;
         Ok(result.shortest_path_cost)
