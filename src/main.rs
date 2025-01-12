@@ -25,6 +25,7 @@ mod day21_keypad_conundrum;
 mod day22_monkey_market;
 mod day23_lan_party;
 mod day24_crossed_wires;
+mod day25_code_chronicle;
 
 fn main() {
     let mut context = common::Context::default();
@@ -91,5 +92,6 @@ fn days() -> &'static [fn(&mut common::Context)] {
         day22_monkey_market::run,
         day23_lan_party::run,
         day24_crossed_wires::run,
+        day25_code_chronicle::run,
     ]
 }
