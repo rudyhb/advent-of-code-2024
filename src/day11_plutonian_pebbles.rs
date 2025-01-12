@@ -9,7 +9,7 @@ pub fn run(context: &mut Context) {
     let input = context.get_input();
     let input = input.as_str();
 
-    let mut stones: Stones = input.parse().unwrap();
+    let mut stones: StonesV2 = input.parse::<Stones>().unwrap().into();
 
     log::debug!("initial:\n{}", stones);
 
@@ -34,22 +34,23 @@ pub fn run(context: &mut Context) {
 
 struct Stones(LinkedList<Stone>);
 
-impl Stones {
-    pub fn stones_count(&self) -> usize {
-        self.0.len()
-    }
-    pub fn blink(&mut self) {
-        let mut cursor = self.0.cursor_front_mut();
-
-        while let Some(stone) = cursor.current() {
-            if let Some(split_right) = stone.blink() {
-                cursor.insert_after(split_right);
-                cursor.move_next();
-            }
-            cursor.move_next();
-        }
-    }
-}
+// unstable
+//impl Stones {
+//    pub fn stones_count(&self) -> usize {
+//        self.0.len()
+//    }
+//    pub fn blink(&mut self) {
+//        let mut cursor = self.0.cursor_front_mut();
+//
+//        while let Some(stone) = cursor.current() {
+//            if let Some(split_right) = stone.blink() {
+//                cursor.insert_after(split_right);
+//                cursor.move_next();
+//            }
+//            cursor.move_next();
+//        }
+//    }
+//}
 
 impl FromStr for Stones {
     type Err = anyhow::Error;
@@ -57,16 +58,16 @@ impl FromStr for Stones {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.split_whitespace()
-                .map(|value| value.parse().map(|val| Stone::new(val)))
+                .map(|value| value.parse().map(Stone::new))
                 .collect::<Result<_, _>>()?,
         ))
     }
 }
 
-impl Display for Stones {
+impl Display for StonesV2 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for val in &self.0 {
-            write!(f, "{}  ", val.0)?;
+        for (val, &count) in &self.0 {
+            write!(f, "{}x{}  ", val.0, count)?;
         }
         Ok(())
     }
