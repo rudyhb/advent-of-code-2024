@@ -1,9 +1,10 @@
 use crate::common::models::{Direction, Point};
 use crate::common::{Context, InputProvider};
 use itertools::Itertools;
+use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use utils::a_star::{a_star_search, Node, Successor};
 
 pub fn run(context: &mut Context) {
     context.add_test_inputs(get_test_inputs());
@@ -17,10 +18,12 @@ pub fn run(context: &mut Context) {
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
 
+    let mut solver = Solver::default();
     let sum_complexities: usize = door_codes
+        .clone()
         .into_iter()
         .map(|code| {
-            let best = solve(&code, 3);
+            let best = solver.solve_door(&code, 3);
             let numeric_code = code.numeric_code();
             log::debug!("shortest code for {}:\n{}", code, best);
             log::debug!(
@@ -32,80 +35,250 @@ pub fn run(context: &mut Context) {
             best.0.len() * numeric_code
         })
         .sum();
+    println!("sum complexities 3 robots: {}", sum_complexities);
 
-    println!("sum complexities: {}", sum_complexities);
+    let robots = 26;
+    let sum_complexities: usize = door_codes
+        .into_iter()
+        .map(|code| {
+            let best = solve_door(&code, robots);
+            let numeric_code = code.numeric_code();
+            log::debug!("shortest code for {}:\n{}", code, best);
+            log::debug!(
+                "complexity: length {} * numeric {} = {}",
+                best,
+                numeric_code,
+                best * numeric_code
+            );
+            best * numeric_code
+        })
+        .sum();
+
+    println!("sum complexities {} robots: {}", robots, sum_complexities);
 }
+const PEEK_DISTANCE: usize = 5;
+fn find_next(
+    codes: DirectionalSequence,
+    count: usize,
+    cache: &mut HashMap<DirectionalSequence, DirectionalSequence>,
+) -> DirectionalSequence {
+    if let Some(result) = cache.get(&codes) {
+        return result.clone();
+    }
+    let result = find_next_iter(codes.clone(), count).1;
+    cache.insert(codes, result.clone());
 
-#[derive(Clone, Debug, Hash)]
-struct State {
-    last_value: Value,
-    input_iterator: SequenceIterator,
-    current_output: DirectionalSequence,
-    robot_index: usize,
+    result
 }
+fn find_next_iter(codes: DirectionalSequence, count: usize) -> (usize, DirectionalSequence) {
+    if count == 0 {
+        return (codes.0.len(), codes);
+    }
+    let mut active = Value::Directional(Default::default());
+    let (len, next) = codes
+        .0
+        .iter()
+        .map(|&value| {
+            let diffs =
+                get_direction_diffs_for_directional_keypad(Value::Directional(value), active);
+            active = Value::Directional(value);
+            let (len, next) = diffs
+                .iter()
+                .map(|directions| {
+                    let next = DirectionalSequence::from_directions(&directions);
+                    let len = find_next_iter(next.clone(), count - 1).0;
+                    (len, next)
+                })
+                .min_by(|(a, _), (b, _)| a.cmp(b))
+                .unwrap();
+            (len, next)
+        })
+        .fold(
+            (0, DirectionalSequence::default()),
+            |(mut sum, mut acc), (len, next)| {
+                sum += len;
+                acc.0.extend(next.0);
+                (sum, acc)
+            },
+        );
 
-impl State {
-    pub fn try_next_robot(&mut self, robot_count: usize) -> bool {
-        self.input_iterator =
-            Sequence::Directional(std::mem::take(&mut self.current_output)).into_iter();
-        self.last_value = Value::Directional(Default::default());
-        self.robot_index += 1;
-
-        self.robot_index < robot_count
+    (len, next)
+}
+#[derive(Eq, PartialEq, Hash, Clone)]
+struct SolveCacheIndex<'a> {
+    sequence: Cow<'a, DirectionalSequence>,
+    robot_count: usize,
+}
+impl<'a> SolveCacheIndex<'a> {
+    pub fn new(sequence: Cow<'a, DirectionalSequence>, robot_count: usize) -> Self {
+        Self {
+            sequence,
+            robot_count,
+        }
     }
 }
+fn solve_keypad(
+    directions: DirectionalSequence,
+    robot_count: usize,
+    peek_cache: &mut HashMap<DirectionalSequence, DirectionalSequence>,
+    solve_cache: &mut HashMap<SolveCacheIndex, usize>,
+) -> usize {
+    if robot_count == 0 {
+        return directions.0.len();
+    }
 
-impl Node for State {}
+    let index = SolveCacheIndex::new(Cow::Borrowed(&directions), robot_count);
+    if let Some(&solution) = solve_cache.get(&index) {
+        return solution;
+    }
 
-fn solve(door_code: &NumericSequence, robot_count: usize) -> DirectionalSequence {
-    assert!(robot_count > 1);
-    let start = State {
-        last_value: Value::Numeric(Default::default()),
-        input_iterator: Sequence::Numeric(door_code.clone()).into_iter(),
-        current_output: Default::default(),
-        robot_index: 0,
-    };
+    let solution = directions
+        .iter_actions()
+        .map(|action| {
+            let next = find_next(action, PEEK_DISTANCE, peek_cache);
+            solve_keypad(next, robot_count - 1, peek_cache, solve_cache)
+        })
+        .sum();
 
-    let distance_estimate = |state: &State| -> usize { robot_count - state.robot_index - 1 };
+    solve_cache.insert(
+        SolveCacheIndex::new(Cow::Owned(directions), robot_count),
+        solution,
+    );
 
-    let get_successors = |state: &State| -> Vec<Successor<State, usize>> {
-        let mut state = state.clone();
-        let button = loop {
-            if let Some(button) = state.input_iterator.next() {
-                break button;
-            } else if !state.try_next_robot(robot_count) {
-                return vec![];
-            }
-        };
-        let direction_possibilities = if state.robot_index == 0 {
-            get_direction_diffs_for_numeric_keypad(button, state.last_value)
-        } else {
-            get_direction_diffs_for_directional_keypad(button, state.last_value)
-        };
-
-        direction_possibilities
+    solution
+}
+fn solve_door(code: &NumericSequence, robot_count: usize) -> usize {
+    let mut active = Value::Numeric(Default::default());
+    let mut cache = HashMap::default();
+    let mut cache2 = HashMap::default();
+    let result = code
+        .0
+        .iter()
+        .map(|&value| {
+            let diffs = get_direction_diffs_for_numeric_keypad(Value::Numeric(value), active);
+            active = Value::Numeric(value);
+            diffs
+                .iter()
+                .map(|directions| {
+                    solve_keypad(
+                        DirectionalSequence::from_directions(&directions),
+                        robot_count - 1,
+                        &mut cache,
+                        &mut cache2,
+                    )
+                })
+                .min()
+                .unwrap()
+        })
+        .sum();
+    log::debug!(
+        "caches 1: count={}, length frequencies={:?}",
+        cache.len(),
+        cache
             .iter()
-            .map(|possibility| {
-                let mut state = state.clone();
-                let sequence = DirectionalSequence::from_directions(&possibility);
-                let cost = sequence.0.len();
-                state.current_output.extend(sequence);
-                state.last_value = button;
-                Successor::new(state, cost)
+            .fold(HashMap::new(), |mut acc: HashMap<usize, usize>, next| {
+                *acc.entry(next.0.len()).or_default() += 1;
+                acc
             })
-            .collect()
-    };
+    );
+    log::debug!("caches 2: count={}", cache2.len());
+    result
+}
 
-    let result = a_star_search(
-        start,
-        get_successors,
-        |details| distance_estimate(&details.current_node),
-        |state| state.robot_index == robot_count - 1 && state.input_iterator.is_at_end(),
-        None,
-    )
-    .unwrap();
+#[derive(Default)]
+struct Solver {
+    cache_next: HashMap<DirectionalSequence, DirectionalSequence>,
+}
 
-    result.shortest_path.last().cloned().unwrap().current_output
+impl Solver {
+    const PEEK_DISTANCE: usize = 5;
+    fn find_next(&mut self, codes: DirectionalSequence, count: usize) -> DirectionalSequence {
+        if let Some(cache) = self.cache_next.get(&codes) {
+            return cache.clone();
+        }
+        let result = Self::find_next_iter(codes.clone(), count).1;
+        self.cache_next.insert(codes, result.clone());
+        result
+    }
+    fn find_next_iter(codes: DirectionalSequence, count: usize) -> (usize, DirectionalSequence) {
+        if count == 0 {
+            return (codes.0.len(), codes);
+        }
+        let mut active = Value::Directional(Default::default());
+        let (len, next) = codes
+            .0
+            .iter()
+            .map(|&value| {
+                let diffs =
+                    get_direction_diffs_for_directional_keypad(Value::Directional(value), active);
+                active = Value::Directional(value);
+                let (len, next) = diffs
+                    .iter()
+                    .map(|directions| {
+                        let next = DirectionalSequence::from_directions(&directions);
+                        let len = Self::find_next_iter(next.clone(), count - 1).0;
+                        (len, next)
+                    })
+                    .min_by(|(a, _), (b, _)| a.cmp(b))
+                    .unwrap();
+                (len, next)
+            })
+            .fold(
+                (0, DirectionalSequence::default()),
+                |(mut sum, mut acc), (len, next)| {
+                    sum += len;
+                    acc.0.extend(next.0);
+                    (sum, acc)
+                },
+            );
+
+        (len, next)
+    }
+    fn get_shortest_directions_to_press(
+        &mut self,
+        directions: DirectionalSequence,
+        robot_count: usize,
+    ) -> DirectionalSequence {
+        let mut directions = directions;
+        for i in 0..robot_count {
+            log::trace!("robot {} types {}", i, directions);
+            directions = directions
+                .iter_actions()
+                .map(|action| self.find_next(action, Self::PEEK_DISTANCE))
+                .fold(DirectionalSequence::default(), |mut acc, next| {
+                    acc.0.extend(next.0);
+                    acc
+                });
+        }
+        directions
+    }
+    pub fn solve_door(
+        &mut self,
+        code: &NumericSequence,
+        robot_count: usize,
+    ) -> DirectionalSequence {
+        let mut active = Value::Numeric(Default::default());
+        code.0
+            .iter()
+            .map(|&value| {
+                let diffs = get_direction_diffs_for_numeric_keypad(Value::Numeric(value), active);
+                active = Value::Numeric(value);
+                diffs
+                    .iter()
+                    .map(|directions| {
+                        self.get_shortest_directions_to_press(
+                            DirectionalSequence::from_directions(&directions),
+                            robot_count - 1,
+                        )
+                    })
+                    .min_by(|a, b| a.0.len().cmp(&b.0.len()))
+                    .unwrap()
+            })
+            .fold(DirectionalSequence::default(), |mut acc, next| {
+                acc.0.extend(next.0);
+                acc
+            })
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
@@ -121,12 +294,6 @@ struct DirectionalSequence(Vec<DirectionalValue>);
 impl NumericSequence {
     pub fn numeric_code(&self) -> usize {
         format!("{}", self).replace("A", "").parse().unwrap()
-    }
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-    pub fn get(&self, index: usize) -> Value {
-        Value::Numeric(self.0[index])
     }
 }
 
@@ -145,12 +312,6 @@ impl DirectionalSequence {
     pub fn len(&self) -> usize {
         self.0.len()
     }
-    pub fn get(&self, index: usize) -> Value {
-        Value::Directional(self.0[index])
-    }
-    pub fn extend(&mut self, other: Self) {
-        self.0.extend(other.0)
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -159,57 +320,53 @@ enum Value {
     Numeric(NumericValue),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum Sequence {
-    Directional(DirectionalSequence),
-    #[allow(unused)]
-    Numeric(NumericSequence),
-}
-
-impl Sequence {
-    pub fn len(&self) -> usize {
-        match self {
-            Sequence::Directional(s) => s.len(),
-            Sequence::Numeric(s) => s.len(),
-        }
-    }
-    pub fn get(&self, index: usize) -> Value {
-        match self {
-            Sequence::Directional(s) => s.get(index),
-            Sequence::Numeric(s) => s.get(index),
-        }
-    }
-    pub fn into_iter(self) -> SequenceIterator {
-        SequenceIterator {
-            sequence: self,
-            index: 0,
-        }
+impl DirectionalSequence {
+    pub fn iter_actions(&self) -> DirectionalSequenceActionsIterator {
+        DirectionalSequenceActionsIterator::new(self)
     }
 }
 
-#[derive(Clone, Debug, Hash)]
-struct SequenceIterator {
-    sequence: Sequence,
+struct DirectionalSequenceActionsIterator<'a> {
+    sequence: &'a DirectionalSequence,
     index: usize,
 }
 
-impl SequenceIterator {
-    pub fn is_at_end(&self) -> bool {
-        self.index >= self.sequence.len()
+impl<'a> DirectionalSequenceActionsIterator<'a> {
+    pub fn new(sequence: &'a DirectionalSequence) -> Self {
+        Self { sequence, index: 0 }
     }
 }
 
-impl Iterator for SequenceIterator {
-    type Item = Value;
+impl Iterator for DirectionalSequenceActionsIterator<'_> {
+    type Item = DirectionalSequence;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.sequence.len() {
-            let val = self.sequence.get(self.index);
+            let mut next = vec![self.sequence.0[self.index]];
+            while self.sequence.0[self.index].0.is_some() && self.index < self.sequence.len() - 1 {
+                self.index += 1;
+                next.push(self.sequence.0[self.index]);
+            }
             self.index += 1;
-            Some(val)
+            Some(DirectionalSequence(next))
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_directional_sequence_actions() {
+        let sequence: DirectionalSequence = "v<<A>>^A<A>AvA<^AA>A<vAAA>^A".parse().unwrap();
+        let len = sequence.iter_actions().count();
+        println!("actions:");
+        for action in sequence.iter_actions() {
+            println!("{}", action);
+        }
+        assert_eq!(len, 12);
     }
 }
 
@@ -402,11 +559,11 @@ impl Display for DirectionalSequence {
 impl FromStr for DirectionalSequence {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.chars()
                 .map(|c| c.try_into())
-                .collect::<std::result::Result<Vec<_>, _>>()?,
+                .collect::<Result<Vec<_>, _>>()?,
         ))
     }
 }
@@ -472,11 +629,11 @@ impl TryFrom<char> for NumericValue {
 impl FromStr for NumericSequence {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.chars()
                 .map(|c| c.try_into())
-                .collect::<std::result::Result<Vec<_>, _>>()?,
+                .collect::<Result<Vec<_>, _>>()?,
         ))
     }
 }
@@ -488,19 +645,6 @@ impl Display for NumericSequence {
             "{}",
             self.0.iter().map(|val| val.to_string()).collect::<String>()
         )
-    }
-}
-
-impl Display for Sequence {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Sequence::Directional(s) => {
-                write!(f, "{}", s)
-            }
-            Sequence::Numeric(s) => {
-                write!(f, "{}", s)
-            }
-        }
     }
 }
 
